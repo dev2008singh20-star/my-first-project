@@ -1,1 +1,2 @@
-# my-first-project + hacking project 
+# my-first-project
+hacking project

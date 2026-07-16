@@ -1,75 +1,205 @@
-html 
-
 <!DOCTYPE html>
-<html lang="en:"
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, inital-scle=1.0">
-    <title>Secure Chat Setup</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure College Chat App</title>
     <style>
-        body {
-            font-family: Aeial, sans-serif;
-            background-color: #f0f2f5;
-            display: flex;
-            flex-direction: colimn;
-            align-items: center;
-            padding: 20pox;
-        }
-        .container {
-            background-color: white;
-            padding: 30pox;
-            border-radius: 10pox;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            max-width: 400px;
-            width: 100%;
-        }
-        h2 {
-            color: #128c7e;
-            text-align: center;
-        }
-        label {
-            font-weight: bold;
-            display: block;
-            margin-top: 15px;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-sizing: borber-box;
-        }
-        button {
-            background-color: #25d366;
-            color: wheat;
-            border: none;
-            padding: 12px;
-            width: 100%;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-        }
+        body { font-family: Arial, sans-serif; background-color: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 500px; width: 100%; margin-bottom: 20px; box-sizing: border-box; }
+        h2 { color: #128c7e; text-align: center; }
+        label { font-weight: bold; display: block; margin-top: 15px; }
+        input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { background-color: #25d366; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; font-size: 16px; margin-top: 20px; cursor: pointer; font-weight: bold; }
+        .hidden { display: none !important; }
+        
+        /* Chat Box Styling */
+        #chatBox { height: 300px; border: 1px solid #ddd; border-radius: 5px; padding: 10px; overflow-y: auto; background: #efeae2; margin-bottom: 10px; }
+        .msg { padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; max-width: 80%; width: fit-content; }
+        .msg.sent { background: #d9fdd3; margin-left: auto; }
+        .msg.received { background: white; margin-right: auto; }
+        
+        /* Admin User Card Styling */
+        .user-card { border: 1px solid #ddd; padding: 10px; margin-top: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-group button { margin-top: 0; padding: 5px 10px; width: auto; font-size: 14px; margin-left: 5px; }
+        .btn-accept { background-color: #25d366; }
+        .btn-kick { background-color: #ea0038; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2> Join the Secure Chat</h2>
-        <p>Please enter your details to request access from the Admin.</p>
-
+    <div id="regSection" class="container">
+        <h2>Join the Secure Chat</h2>
+        <p style="text-align:center; color:#666;">Enter details to request access from Admin.</p>
         <form id="registrationForm">
-            <label for="usrename">Full Name:</label>
-            <input type="text" id="usrename" required placeholder="Enter your name">
-
-            <label for="age">Age:</label>
+            <label>Full Name:</label>
+            <input type="text" id="username" required placeholder="Enter your name">
+            <label>Age:</label>
             <input type="number" id="age" required placeholder="Enter your age">
-
-            <label for="phone">Phone Number:</label>
+            <label>Phone Number:</label>
             <input type="tel" id="phone" required placeholder="Enter phone number">
-            
             <button type="submit">Request to Join</button>
-                </form>
+        </form>
     </div>
+
+    <div id="waitSection" class="container hidden" style="text-align: center;">
+        <h2>Request Sent!</h2>
+        <p>Please wait. The Admin is reviewing your name, age, and details for safety reasons...</p>
+        <div style="color: #666; font-style: italic;">Checking approval status automatically...</div>
+    </div>
+
+    <div id="chatSection" class="container hidden">
+        <h2 id="chatHeader">Chat Group</h2>
+        <div id="chatBox"></div>
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="messageInput" placeholder="Type a message...">
+            <button id="sendBtn" style="margin-top:0; width:80px;">Send</button>
+        </div>
+    </div>
+
+    <div id="adminSection" class="container hidden" style="border: 2px dashed #ea0038;">
+        <h2 style="color: #ea0038;">Admin Control Panel</h2>
+        <div id="pendingUsers"><h4>Pending Requests:</h4></div>
+        <div id="approvedUsers" style="margin-top:20px;"><h4>Active Members:</h4></div>
+    </div>
+
+    <script>
+        // Paste your database link between the quotes below!
+        const databaseURL = "https://my-college-chat-app-default-rtdb.firebaseio.com/";
+
+        // Helper functions to talk to your database REST API
+        async function dbSave(path, data) {
+            await fetch(`${databaseURL}${path}.json`, { method: 'PUT', body: JSON.stringify(data) });
+        }
+        async function dbUpdate(path, data) {
+            await fetch(`${databaseURL}${path}.json`, { method: 'PATCH', body: JSON.stringify(data) });
+        }
+        async function dbGet(path) {
+            let res = await fetch(`${databaseURL}${path}.json`);
+            return await res.json();
+        }
+
+        let myUserId = localStorage.getItem("chat_userId") || "";
+        let myName = localStorage.getItem("chat_userName") || "";
+
+        if (myUserId) {
+            checkUserStatus();
+            setInterval(checkUserStatus, 3000);
+        }
+
+        // Secret trick to open admin dashboard: Type "admin" in the name field
+        document.getElementById("registrationForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById("username").value;
+            
+            if (nameInput.toLowerCase() === "admin") {
+                document.getElementById("regSection").classList.add("hidden");
+                document.getElementById("adminSection").classList.remove("hidden");
+                loadAdminPanel();
+                setInterval(loadAdminPanel, 3000);
+                return;
+            }
+
+            myUserId = "user_" + Date.now();
+            myName = nameInput;
+            localStorage.setItem("chat_userId", myUserId);
+            localStorage.setItem("chat_userName", myName);
+
+            const userData = {
+                name: myName,
+                age: document.getElementById("age").value,
+                phone: document.getElementById("phone").value,
+                status: "pending"
+            };
+
+            document.getElementById("regSection").classList.add("hidden");
+            document.getElementById("waitSection").classList.remove("hidden");
+
+            await dbSave(`users/${myUserId}`, userData);
+            setInterval(checkUserStatus, 3000);
+        });
+
+        async function checkUserStatus() {
+            if (!myUserId) return;
+            let user = await dbGet(`users/${myUserId}`);
+            if (!user) {
+                localStorage.clear();
+                location.reload();
+                return;
+            }
+            if (user.status === "approved") {
+                document.getElementById("regSection").classList.add("hidden");
+                document.getElementById("waitSection").classList.add("hidden");
+                document.getElementById("chatSection").classList.remove("hidden");
+                document.getElementById("chatHeader").innerText = `Logged in as: ${myName}`;
+                loadMessages();
+            }
+        }
+
+        document.getElementById("sendBtn").addEventListener("click", sendMessage);
+        async function sendMessage() {
+            const text = document.getElementById("messageInput").value;
+            if (!text) return;
+            const msgId = "msg_" + Date.now();
+            await dbSave(`messages/${msgId}`, { sender: myName, userId: myUserId, message: text });
+            document.getElementById("messageInput").value = "";
+            loadMessages();
+        }
+
+        async function loadMessages() {
+            let messages = await dbGet("messages");
+            const box = document.getElementById("chatBox");
+            box.innerHTML = "";
+            if (!messages) return;
+            Object.values(messages).forEach(m => {
+                let div = document.createElement("div");
+                div.className = `msg ${m.userId === myUserId ? 'sent' : 'received'}`;
+                div.innerText = `${m.sender}: ${m.message}`;
+                box.appendChild(div);
+            });
+            box.scrollTop = box.scrollHeight;
+        }
+        setInterval(() => { if(!document.getElementById("chatSection").classList.contains("hidden")) loadMessages(); }, 3000);
+
+        async function loadAdminPanel() {
+            let users = await dbGet("users");
+            const pendingDiv = document.getElementById("pendingUsers");
+            const approvedDiv = document.getElementById("approvedUsers");
+            pendingDiv.innerHTML = "<h4>Pending Requests:</h4>";
+            approvedDiv.innerHTML = "<h4>Active Members:</h4>";
+
+            if (!users) return;
+            Object.keys(users).forEach(id => {
+                let u = users[id];
+                let card = document.createElement("div");
+                card.className = "user-card";
+                card.innerHTML = `<div><strong>${u.name}</strong> (Age: ${u.age}, Ph: ${u.phone})</div>`;
+                
+                let btnGroup = document.createElement("div");
+                btnGroup.className = "btn-group";
+
+                if (u.status === "pending") {
+                    let accBtn = document.createElement("button");
+                    accBtn.className = "btn-accept";
+                    accBtn.innerText = "Accept";
+                    accBtn.onclick = async () => { await dbUpdate(`users/${id}`, { status: "approved" }); loadAdminPanel(); };
+                    btnGroup.appendChild(accBtn);
+                }
+                
+                let kickBtn = document.createElement("button");
+                kickBtn.className = "btn-kick";
+                kickBtn.innerText = u.status === "pending" ? "Reject" : "Kick";
+                kickBtn.onclick = async () => { 
+                    await fetch(`${databaseURL}users/${id}.json`, { method: 'DELETE' }); 
+                    loadAdminPanel(); 
+                };
+                btnGroup.appendChild(kickBtn);
+                
+                card.appendChild(btnGroup);
+                if (u.status === "pending") pendingDiv.appendChild(card);
+                else approvedDiv.appendChild(card);
+            });
+        }
+    </script>
 </body>
 </html>

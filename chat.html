@@ -24,6 +24,7 @@
         .btn-group button { margin-top: 0; padding: 5px 10px; width: auto; font-size: 14px; margin-left: 5px; }
         .btn-accept { background-color: #25d366; }
         .btn-kick { background-color: #ea0038; }
+        .btn-reset { background-color: #555; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -45,7 +46,7 @@
     <div id="waitSection" class="container hidden" style="text-align: center;">
         <h2>Request Sent!</h2>
         <p>Please wait. The Admin is reviewing your name, age, and details for safety reasons...</p>
-        <div style="color: #666; font-style: italic;">Checking approval status automatically...</div>
+        <button onclick="localStorage.clear(); location.reload();" style="background-color:#777; padding:8px; font-size:12px;">Cancel & Try Again</button>
     </div>
 
     <div id="chatSection" class="container hidden">
@@ -61,13 +62,12 @@
         <h2 style="color: #ea0038;">Admin Control Panel</h2>
         <div id="pendingUsers"><h4>Pending Requests:</h4></div>
         <div id="approvedUsers" style="margin-top:20px;"><h4>Active Members:</h4></div>
+        <button class="btn-reset" onclick="resetDatabase()">Wipe & Reset Database</button>
     </div>
 
     <script>
-        // Paste your database link between the quotes below!
         const databaseURL = "https://my-college-chat-app-default-rtdb.firebaseio.com/";
 
-        // Helper functions to talk to your database REST API
         async function dbSave(path, data) {
             await fetch(`${databaseURL}${path}.json`, { method: 'PUT', body: JSON.stringify(data) });
         }
@@ -78,21 +78,28 @@
             let res = await fetch(`${databaseURL}${path}.json`);
             return await res.json();
         }
+        async function resetDatabase() {
+            if(confirm("Wipe all users and messages?")) {
+                await fetch(`${databaseURL}.json`, { method: 'DELETE' });
+                localStorage.clear();
+                location.reload();
+            }
+        }
 
         let myUserId = localStorage.getItem("chat_userId") || "";
         let myName = localStorage.getItem("chat_userName") || "";
 
-        if (myUserId) {
+        if (myUserId && myUserId !== "admin") {
             checkUserStatus();
             setInterval(checkUserStatus, 3000);
         }
 
-        // Secret trick to open admin dashboard: Type "admin" in the name field
         document.getElementById("registrationForm").addEventListener("submit", async (e) => {
             e.preventDefault();
-            const nameInput = document.getElementById("username").value;
+            const nameInput = document.getElementById("username").value.trim();
             
             if (nameInput.toLowerCase() === "admin") {
+                localStorage.setItem("chat_userId", "admin");
                 document.getElementById("regSection").classList.add("hidden");
                 document.getElementById("adminSection").classList.remove("hidden");
                 loadAdminPanel();
@@ -116,11 +123,10 @@
             document.getElementById("waitSection").classList.remove("hidden");
 
             await dbSave(`users/${myUserId}`, userData);
-            setInterval(checkUserStatus, 3000);
         });
 
         async function checkUserStatus() {
-            if (!myUserId) return;
+            if (!myUserId || myUserId === "admin") return;
             let user = await dbGet(`users/${myUserId}`);
             if (!user) {
                 localStorage.clear();
@@ -171,9 +177,11 @@
             if (!users) return;
             Object.keys(users).forEach(id => {
                 let u = users[id];
+                if (!u || !u.name) return; // Safely skip corrupt/undefined records!
+                
                 let card = document.createElement("div");
                 card.className = "user-card";
-                card.innerHTML = `<div><strong>${u.name}</strong> (Age: ${u.age}, Ph: ${u.phone})</div>`;
+                card.innerHTML = `<div><strong>${u.name}</strong> (Age: ${u.age || 'N/A'}, Ph: ${u.phone || 'N/A'})</div>`;
                 
                 let btnGroup = document.createElement("div");
                 btnGroup.className = "btn-group";

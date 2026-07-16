@@ -1,0 +1,75 @@
+html 
+
+<!DOCTYPE html>
+<html lang="en:"
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, inital-scle=1.0">
+    <title>Secure Chat Setup</title>
+    <style>
+        body {
+            font-family: Aeial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: colimn;
+            align-items: center;
+            padding: 20pox;
+        }
+        .container {
+            background-color: white;
+            padding: 30pox;
+            border-radius: 10pox;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        h2 {
+            color: #128c7e;
+            text-align: center;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 15px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: borber-box;
+        }
+        button {
+            background-color: #25d366;
+            color: wheat;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2> Join the Secure Chat</h2>
+        <p>Please enter your details to request access from the Admin.</p>
+
+        <form id="registrationForm">
+            <label for="usrename">Full Name:</label>
+            <input type="text" id="usrename" required placeholder="Enter your name">
+
+            <label for="age">Age:</label>
+            <input type="number" id="age" required placeholder="Enter your age">
+
+            <label for="phone">Phone Number:</label>
+            <input type="tel" id="phone" required placeholder="Enter phone number">
+            
+            <button type="submit">Request to Join</button>
+                </form>
+    </div>
+</body>
+</html>
